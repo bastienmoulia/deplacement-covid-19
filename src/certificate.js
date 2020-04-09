@@ -272,18 +272,24 @@ $('#generate-btn-image').addEventListener('click', async event => {
   const reasons = getAndSaveReasons()
   const pdfBlob = await generatePdf(getProfile(), reasons)
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
-  const pdfBuffer = await pdfBlob.arrayBuffer()
-  const pdfDoc = await pdfjsLib.getDocument({ data: pdfBuffer })
-  const page = await pdfDoc.getPage(1)
-  const viewport = page.getViewport(2)
-  const canvas = document.querySelector('#pdf-canvas')
-  const renderContext = {
-    canvasContext: canvas.getContext('2d'),
-    viewport: viewport,
+  const reader = new FileReader()
+
+  reader.onload = async (e) => {
+    const pdfBuffer = reader.result
+    const pdfDoc = await pdfjsLib.getDocument({ data: pdfBuffer })
+    const page = await pdfDoc.getPage(1)
+    const viewport = page.getViewport(2)
+    const canvas = document.querySelector('#pdf-canvas')
+    const renderContext = {
+      canvasContext: canvas.getContext('2d'),
+      viewport: viewport,
+    }
+    await page.render(renderContext)
+    const pdfImage = canvas.toDataURL()
+    downloadBase64(pdfImage, 'attestation.png')
   }
-  await page.render(renderContext)
-  const pdfImage = canvas.toDataURL()
-  downloadBase64(pdfImage, 'attestation.png')
+
+  reader.readAsArrayBuffer(pdfBlob)
 })
 
 $$('input').forEach(input => {
