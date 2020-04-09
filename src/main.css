@@ -388,3 +388,7 @@ input:valid+span:after {
   left: 50%;
   transform: translateX(-50%);
 }
+
+#pdf-canvas {
+  display: none;
+}

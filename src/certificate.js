@@ -5,13 +5,15 @@ import './main.css'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import QRCode from 'qrcode'
 import { library, dom } from '@fortawesome/fontawesome-svg-core'
-import { faEye, faFilePdf } from '@fortawesome/free-solid-svg-icons'
+import { faEye, faFilePdf, faFileImage } from '@fortawesome/free-solid-svg-icons'
+import * as pdfjsLib from 'pdfjs-dist'
+import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'
 
 import './check-updates'
 import { $, $$ } from './dom-utils'
 import pdfBase from './certificate.pdf'
 
-library.add(faEye, faFilePdf)
+library.add(faEye, faFilePdf, faFileImage)
 
 dom.watch()
 
@@ -201,6 +203,14 @@ function downloadBlob (blob, fileName) {
   link.click()
 }
 
+function downloadBase64 (base64, fileName) {
+  const link = document.createElement('a')
+  link.href = base64
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+}
+
 function getAndSaveReasons () {
   const values = $$('input[name="field-reason"]:checked')
     .map(x => x.value)
@@ -237,7 +247,7 @@ $('#field-birthday').onkeyup = function () {
 
 const snackbar = $('#snackbar')
 
-$('#generate-btn').addEventListener('click', async event => {
+$('#generate-btn-pdf').addEventListener('click', async event => {
   event.preventDefault()
 
   saveProfile()
@@ -253,6 +263,27 @@ $('#generate-btn').addEventListener('click', async event => {
     snackbar.classList.remove('show')
     setTimeout(() => snackbar.classList.add('d-none'), 500)
   }, 6000)
+})
+
+$('#generate-btn-image').addEventListener('click', async event => {
+  event.preventDefault()
+
+  saveProfile()
+  const reasons = getAndSaveReasons()
+  const pdfBlob = await generatePdf(getProfile(), reasons)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
+  const pdfBuffer = await pdfBlob.arrayBuffer()
+  const pdfDoc = await pdfjsLib.getDocument({ data: pdfBuffer })
+  const page = await pdfDoc.getPage(1)
+  const viewport = page.getViewport(2)
+  const canvas = document.querySelector('#pdf-canvas')
+  const renderContext = {
+    canvasContext: canvas.getContext('2d'),
+    viewport: viewport,
+  }
+  await page.render(renderContext)
+  const pdfImage = canvas.toDataURL()
+  downloadBase64(pdfImage, 'attestation.png')
 })
 
 $$('input').forEach(input => {
