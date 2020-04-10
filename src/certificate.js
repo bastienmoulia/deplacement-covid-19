@@ -43,7 +43,10 @@ function setDateNow (date) {
   day = pad(date.getDate())
 }
 
-document.addEventListener('DOMContentLoaded', setReleaseDateTime)
+document.addEventListener('DOMContentLoaded', () => {
+  setReleaseDateTime()
+  checkExistingCertificate()
+})
 
 function setReleaseDateTime () {
   const loadedDate = new Date()
@@ -56,6 +59,13 @@ function setReleaseDateTime () {
 
   const releaseTimeInput = document.querySelector('#field-heuresortie')
   releaseTimeInput.value = `${hour}:${minute}`
+}
+
+function checkExistingCertificate () {
+  const certificate = localStorage.getItem('certificate')
+  if (certificate) {
+    $('#regenerate').classList.remove('d-none')
+  }
 }
 
 function getProfile () {
@@ -83,6 +93,7 @@ function idealFontSize (font, text, maxWidth, minSize, defaultSize) {
 }
 
 async function generatePdf (profile, reasons) {
+  localStorage.setItem('certificate', JSON.stringify({ profile, reasons }))
   const creationDate = new Date().toLocaleDateString('fr-FR')
   const creationHour = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h')
 
@@ -239,10 +250,28 @@ $('#generate-btn-pdf').addEventListener('click', async event => {
   event.preventDefault()
 
   const reasons = getReasons()
-  const pdfBlob = await generatePdf(getProfile(), reasons)
-  const creationDate = new Date().toLocaleDateString('fr-CA')
-  const creationHour = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-')
-  downloadBlob(pdfBlob, `attestation-${creationDate}_${creationHour}.pdf`)
+  const profile = getProfile()
+  profile.creationDate = new Date().toLocaleDateString('fr-CA')
+  profile.creationHour = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-')
+  const pdfBlob = await generatePdf(profile, reasons)
+  downloadBlob(pdfBlob, `attestation-${profile.creationDate}_${profile.creationHour}.pdf`)
+
+  snackbar.classList.remove('d-none')
+  setTimeout(() => snackbar.classList.add('show'), 100)
+
+  setTimeout(function () {
+    snackbar.classList.remove('show')
+    setTimeout(() => snackbar.classList.add('d-none'), 500)
+  }, 6000)
+})
+
+$('#regenerate-btn-pdf').addEventListener('click', async event => {
+  event.preventDefault()
+
+  const certificate = localStorage.getItem('certificate')
+  const { profile, reasons } = JSON.parse(certificate)
+  const pdfBlob = await generatePdf(profile, reasons)
+  downloadBlob(pdfBlob, `attestation-${profile.creationDate}_${profile.creationHour}.pdf`)
 
   snackbar.classList.remove('d-none')
   setTimeout(() => snackbar.classList.add('show'), 100)
@@ -257,7 +286,10 @@ $('#generate-btn-image').addEventListener('click', async event => {
   event.preventDefault()
 
   const reasons = getReasons()
-  const pdfBlob = await generatePdf(getProfile(), reasons)
+  const profile = getProfile()
+  profile.creationDate = new Date().toLocaleDateString('fr-CA')
+  profile.creationHour = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-')
+  const pdfBlob = await generatePdf(profile, reasons)
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
   const reader = new FileReader()
 
@@ -273,9 +305,42 @@ $('#generate-btn-image').addEventListener('click', async event => {
     }
     await page.render(renderContext)
     const pdfImage = canvas.toDataURL()
-    const creationDate = new Date().toLocaleDateString('fr-CA')
-    const creationHour = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-')
-    downloadBase64(pdfImage, `attestation-${creationDate}_${creationHour}.png`)
+    downloadBase64(pdfImage, `attestation-${profile.creationDate}_${profile.creationHour}.png`)
+
+    snackbar.classList.remove('d-none')
+    setTimeout(() => snackbar.classList.add('show'), 100)
+
+    setTimeout(function () {
+      snackbar.classList.remove('show')
+      setTimeout(() => snackbar.classList.add('d-none'), 500)
+    }, 6000)
+  }
+
+  reader.readAsArrayBuffer(pdfBlob)
+})
+
+$('#regenerate-btn-image').addEventListener('click', async event => {
+  event.preventDefault()
+
+  const certificate = localStorage.getItem('certificate')
+  const { profile, reasons } = JSON.parse(certificate)
+  const pdfBlob = await generatePdf(profile, reasons)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
+  const reader = new FileReader()
+
+  reader.onload = async (e) => {
+    const pdfBuffer = reader.result
+    const pdfDoc = await pdfjsLib.getDocument({ data: pdfBuffer })
+    const page = await pdfDoc.getPage(1)
+    const viewport = page.getViewport(2)
+    const canvas = document.querySelector('#pdf-canvas')
+    const renderContext = {
+      canvasContext: canvas.getContext('2d'),
+      viewport: viewport,
+    }
+    await page.render(renderContext)
+    const pdfImage = canvas.toDataURL()
+    downloadBase64(pdfImage, `attestation-${profile.creationDate}_${profile.creationHour}.png`)
 
     snackbar.classList.remove('d-none')
     setTimeout(() => snackbar.classList.add('show'), 100)
