@@ -39,5 +39,7 @@
     "orientation": "portrait-primary",
     "theme_color": "#ced4da",
     "background_color": "#000191",
-    "display": "minimal-ui"
+    "display": "minimal-ui",
+    "scope": "/deplacement-covid-19/",
+    "start_url": "/deplacement-covid-19/"
 }
