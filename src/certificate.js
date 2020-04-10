@@ -68,6 +68,7 @@ function getProfile () {
       fields[field.id.substring('field-'.length)] = field.value
     }
   }
+  return fields
 }
 
 function idealFontSize (font, text, maxWidth, minSize, defaultSize) {
