@@ -288,6 +288,14 @@ $('#generate-btn-image').addEventListener('click', async event => {
     const creationDate = new Date().toLocaleDateString('fr-CA')
     const creationHour = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-')
     downloadBase64(pdfImage, `attestation-${creationDate}_${creationHour}.png`)
+
+    snackbar.classList.remove('d-none')
+    setTimeout(() => snackbar.classList.add('show'), 100)
+
+    setTimeout(function () {
+      snackbar.classList.remove('show')
+      setTimeout(() => snackbar.classList.add('d-none'), 500)
+    }, 6000)
   }
 
   reader.readAsArrayBuffer(pdfBlob)
